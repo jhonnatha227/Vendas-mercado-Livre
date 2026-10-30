@@ -596,7 +596,7 @@ function renderFinal(){
   cleanup();
   const pontos = QUESTIONS.map(q=>INSIGHTS[q.id][ans[q.id]]);
   const resumo = QUESTIONS.map(q=>`• ${q.label}: ${q.opts[ans[q.id]]}`).join("\n");
-  const msg = `Olá! Assisti a aula gratuita.\n\nMeu diagnóstico:\n${resumo}\n\nQuero entender como começar.`;
+  const msg = `Olá! Quero aprender a vender na internet.\n\nMeu diagnóstico:\n${resumo}\n\nQuero entender como começar.`;
   const wa = `https://wa.me/${CONFIG.whatsapp}?text=${encodeURIComponent(msg)}`;
   const num = CONFIG.whatsapp.replace(/^55(\d{2})(\d{5})(\d{4})$/,"($1) $2-$3");
 
