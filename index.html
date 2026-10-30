@@ -169,7 +169,14 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;background:rad
 .demo{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:14px;cursor:pointer}
 .demo .play{width:68px;height:68px;border-radius:50%;background:var(--y);display:grid;place-items:center;margin:0 auto 12px;box-shadow:0 0 40px rgba(255,204,0,.4);transition:transform .2s}
 .demo:hover .play{transform:scale(1.06)}
-.vbar{position:absolute;left:0;bottom:0;height:6px;width:0;background:var(--y)}
+.vbar{position:absolute;left:0;bottom:0;height:5px;width:0;background:var(--y);z-index:3}
+.video video{object-fit:contain;background:#000;cursor:pointer}
+.vp-over{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.35);cursor:pointer;z-index:2;transition:opacity .25s}
+.vp-over.hide{display:grid!important;opacity:0;pointer-events:none}
+.vp-over .play{width:72px;height:72px;border-radius:50%;background:var(--y);display:grid;place-items:center;box-shadow:0 0 40px rgba(255,204,0,.45);transition:transform .2s}
+.vp-over:hover .play{transform:scale(1.06)}
+.vp-load{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;z-index:2}
+.vp-load i{width:42px;height:42px;border-radius:50%;border:3px solid rgba(255,255,255,.2);border-top-color:var(--y);animation:rot .8s linear infinite}
 .lock{display:flex;align-items:center;justify-content:center;gap:8px;color:var(--muted);font-size:14px;margin-top:18px}
 .cta{opacity:0;transform:translateY(20px);pointer-events:none;max-height:0;overflow:hidden;transition:opacity .6s,transform .6s}
 .cta.show{opacity:1;transform:none;pointer-events:auto;max-height:none;overflow:visible}
@@ -635,8 +642,22 @@ function setupVideo(box, onEnd){
       document.head.appendChild(s);
     }
   } else if(CONFIG.videoArquivo){
-    box.innerHTML = `<video src="${CONFIG.videoArquivo}" controls playsinline preload="metadata"></video>`;
-    box.querySelector("video").addEventListener("ended", onEnd);
+    // Player limpo: sem controles, só a barra amarela de progresso
+    box.innerHTML = `<video src="${CONFIG.videoArquivo}#t=0.1" playsinline webkit-playsinline preload="metadata"></video>
+      <div class="vp-over" id="vp-over"><div class="play"><svg width="26" height="26" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="#120e00"/></svg></div></div>
+      <div class="vp-load hide" id="vp-load"><i></i></div>
+      <div class="vbar" id="vbar"></div>`;
+    const v=box.querySelector("video"), over=$("#vp-over"), bar=$("#vbar"), load=$("#vp-load");
+    const toggle=()=>{ if(v.paused){ const p=v.play(); if(p&&p.catch) p.catch(()=>{}); } else v.pause(); };
+    over.onclick=toggle; v.onclick=toggle;
+    v.addEventListener("play",()=>over.classList.add("hide"));
+    v.addEventListener("pause",()=>{ if(!v.ended) over.classList.remove("hide"); });
+    v.addEventListener("waiting",()=>load.classList.remove("hide"));
+    ["playing","canplay","pause"].forEach(e=>v.addEventListener(e,()=>load.classList.add("hide")));
+    const tick=()=>{ if(v.duration) bar.style.width=(v.currentTime/v.duration*100)+"%"; if(!v.paused&&!v.ended) requestAnimationFrame(tick); };
+    v.addEventListener("play",()=>requestAnimationFrame(tick));
+    v.addEventListener("timeupdate",tick);
+    v.addEventListener("ended",()=>{ bar.style.width="100%"; onEnd(); });
   } else {
     // Demonstração enquanto o vídeo real não existe
     box.innerHTML = `<div class="demo" id="demo"><div><div class="play"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="#120e00"/></svg></div>Prévia: seu vídeo entra aqui</div></div><div class="vbar" id="vbar"></div>`;
