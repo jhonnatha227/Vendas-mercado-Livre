@@ -524,6 +524,7 @@ function renderQ(){
     if(canHover) b.onmouseenter = ()=>highlight(q,i);
     b.onclick = ()=>{
       unlockAudio();
+      if(step===QUESTIONS.length-1) primeVideo();
       ans[q.id]=i;
       opts.querySelectorAll(".opt").forEach(x=>x.classList.remove("sel"));
       b.classList.add("sel"); highlight(q,i);
@@ -622,6 +623,20 @@ function renderFinal(){
   show("final");
   setupVideo($("#video"), unlock);
 }
+let PRIMED_VIDEO=null;
+function makeVideo(){
+  const v=document.createElement("video");
+  v.src=CONFIG.videoArquivo; v.preload="auto";
+  v.setAttribute("playsinline",""); v.setAttribute("webkit-playsinline","");
+  return v;
+}
+// Chamado no toque da última resposta: "destrava" o vídeo com som no celular
+function primeVideo(){
+  if(!CONFIG.videoArquivo || PRIMED_VIDEO) return;
+  const v=makeVideo(); v.style.display="none"; document.body.appendChild(v);
+  try{ const p=v.play(); v.pause(); if(p&&p.catch) p.catch(()=>{}); }catch(e){}
+  PRIMED_VIDEO=v;
+}
 function unlock(){
   const c=$("#cta"); if(!c || c.classList.contains("show")) return;
   $("#lock").classList.add("hide"); c.classList.add("show");
@@ -641,22 +656,25 @@ function setupVideo(box, onEnd){
       document.head.appendChild(s);
     }
   } else if(CONFIG.videoArquivo){
-    // Player limpo: sem controles, só a barra amarela de progresso
-    box.innerHTML = `<video src="${CONFIG.videoArquivo}#t=0.1" playsinline webkit-playsinline preload="metadata"></video>
-      <div class="vp-over" id="vp-over"><div class="play"><svg width="26" height="26" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="#120e00"/></svg></div></div>
-      <div class="vp-load hide" id="vp-load"><i></i></div>
+    // Player limpo: começa sozinho, sem botões, só a barra amarela de progresso
+    const v = PRIMED_VIDEO || makeVideo();
+    box.innerHTML = `<div class="vp-load" id="vp-load"><i></i></div>
+      <div class="vp-over hide" id="vp-over"><div class="play"><svg width="26" height="26" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="#120e00"/></svg></div></div>
       <div class="vbar" id="vbar"></div>`;
-    const v=box.querySelector("video"), over=$("#vp-over"), bar=$("#vbar"), load=$("#vp-load");
-    const toggle=()=>{ if(v.paused){ const p=v.play(); if(p&&p.catch) p.catch(()=>{}); } else v.pause(); };
-    over.onclick=toggle; v.onclick=toggle;
-    v.addEventListener("play",()=>over.classList.add("hide"));
-    v.addEventListener("pause",()=>{ if(!v.ended) over.classList.remove("hide"); });
+    box.prepend(v); v.style.display="";
+    const over=$("#vp-over"), bar=$("#vbar"), load=$("#vp-load");
+    const start=()=>{ const p=v.play(); if(p&&p.catch) p.catch(()=>{ load.classList.add("hide"); over.classList.remove("hide"); }); };
+    over.onclick=()=>{ over.classList.add("hide"); start(); };   // só aparece se o celular bloquear o início automático
     v.addEventListener("waiting",()=>load.classList.remove("hide"));
-    ["playing","canplay","pause"].forEach(e=>v.addEventListener(e,()=>load.classList.add("hide")));
+    ["playing","canplay"].forEach(e=>v.addEventListener(e,()=>load.classList.add("hide")));
+    v.addEventListener("pause",()=>{ if(!v.ended && v.dataset.started) over.classList.remove("hide"); });
+    v.addEventListener("playing",()=>{ v.dataset.started="1"; over.classList.add("hide"); });
     const tick=()=>{ if(v.duration) bar.style.width=(v.currentTime/v.duration*100)+"%"; if(!v.paused&&!v.ended) requestAnimationFrame(tick); };
     v.addEventListener("play",()=>requestAnimationFrame(tick));
     v.addEventListener("timeupdate",tick);
     v.addEventListener("ended",()=>{ bar.style.width="100%"; onEnd(); });
+    try{ v.currentTime=0; }catch(e){}
+    start();
   } else {
     // Demonstração enquanto o vídeo real não existe
     box.innerHTML = `<div class="demo" id="demo"><div><div class="play"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="#120e00"/></svg></div>Prévia: seu vídeo entra aqui</div></div><div class="vbar" id="vbar"></div>`;
