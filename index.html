@@ -610,7 +610,6 @@ function renderFinal(){
         <button class="wa-fail" id="wa-fail">Não conseguiu abrir o WhatsApp?</button>
         <div class="wa-num" id="wa-num"><div><small>Me chama direto neste número:</small><b>${num}</b></div><button class="wa-copy" id="wa-copy">Copiar</button></div>
       </div>
-      <div class="summary"><h3>O seu caminho, com base nas suas respostas</h3><ul>${pontos.map(p=>`<li>${p}</li>`).join("")}</ul></div>
       <button class="back" id="redo">Refazer diagnóstico</button>
     </div>`;
   $("#wa-fail").onclick = ()=>{ $("#wa-num").classList.add("show"); $("#wa-fail").classList.add("hide"); };
