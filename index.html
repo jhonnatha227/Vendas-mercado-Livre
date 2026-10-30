@@ -170,7 +170,13 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;background:rad
 .demo .play{width:68px;height:68px;border-radius:50%;background:var(--y);display:grid;place-items:center;margin:0 auto 12px;box-shadow:0 0 40px rgba(255,204,0,.4);transition:transform .2s}
 .demo:hover .play{transform:scale(1.06)}
 .vbar{position:absolute;left:0;bottom:0;height:5px;width:0;background:var(--y);z-index:3}
-.video video{object-fit:contain;background:#000;cursor:pointer}
+.video video{object-fit:contain;background:#000;pointer-events:none}
+.video video::-webkit-media-controls,
+.video video::-webkit-media-controls-enclosure,
+.video video::-webkit-media-controls-panel,
+.video video::-webkit-media-controls-overlay-play-button,
+.video video::-webkit-media-controls-start-playback-button{display:none!important;-webkit-appearance:none;opacity:0!important}
+.vp-shield{position:absolute;inset:0;z-index:1;background:transparent}
 .vp-over{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.35);cursor:pointer;z-index:2;transition:opacity .25s}
 .vp-over.hide{display:grid!important;opacity:0;pointer-events:none}
 .vp-over .play{width:72px;height:72px;border-radius:50%;background:var(--y);display:grid;place-items:center;box-shadow:0 0 40px rgba(255,204,0,.45);transition:transform .2s}
@@ -628,6 +634,10 @@ function makeVideo(){
   const v=document.createElement("video");
   v.src=CONFIG.videoArquivo; v.preload="auto";
   v.setAttribute("playsinline",""); v.setAttribute("webkit-playsinline","");
+  v.setAttribute("x5-playsinline",""); v.setAttribute("x5-video-player-type","h5");
+  v.setAttribute("disablepictureinpicture",""); v.setAttribute("disableremoteplayback","");
+  v.setAttribute("controlslist","nodownload nofullscreen noremoteplayback noplaybackrate");
+  v.controls=false; v.removeAttribute("controls");
   return v;
 }
 // Chamado no toque da última resposta: "destrava" o vídeo com som no celular
@@ -658,10 +668,11 @@ function setupVideo(box, onEnd){
   } else if(CONFIG.videoArquivo){
     // Player limpo: começa sozinho, sem botões, só a barra amarela de progresso
     const v = PRIMED_VIDEO || makeVideo();
-    box.innerHTML = `<div class="vp-load" id="vp-load"><i></i></div>
+    box.innerHTML = `<div class="vp-shield"></div><div class="vp-load" id="vp-load"><i></i></div>
       <div class="vp-over hide" id="vp-over"><div class="play"><svg width="26" height="26" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="#120e00"/></svg></div></div>
       <div class="vbar" id="vbar"></div>`;
-    box.prepend(v); v.style.display="";
+    box.prepend(v); v.style.display=""; v.controls=false;
+    ["play","pause","ended","loadedmetadata"].forEach(e=>v.addEventListener(e,()=>{ v.controls=false; }));
     const over=$("#vp-over"), bar=$("#vbar"), load=$("#vp-load");
     const start=()=>{ const p=v.play(); if(p&&p.catch) p.catch(()=>{ load.classList.add("hide"); over.classList.remove("hide"); }); };
     over.onclick=()=>{ over.classList.add("hide"); start(); };   // só aparece se o celular bloquear o início automático
